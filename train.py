@@ -21,8 +21,6 @@ class Train:
     def __init__(self, data, args, pred_len):
 
         config = ExperimentConfig(pred_len, args.exp_name)
-        self.denoising = True if args.denoising == "True" else False
-        self.gp = True if args.gp == "True" else False
         self.data = data
         self.len_data = len(data)
         self.formatter = config.make_data_formatter()
@@ -226,14 +224,12 @@ class Train:
 def main():
 
     parser = argparse.ArgumentParser(description="preprocess argument parser")
-    parser.add_argument("--attn_type", type=str, default='ATA')
-    parser.add_argument("--model_name", type=str, default="ATA")
-    parser.add_argument("--exp_name", type=str, default='watershed')
+    parser.add_argument("--attn_type", type=str, default='conv_attn')
+    parser.add_argument("--model_name", type=str, default="conv_attn")
+    parser.add_argument("--exp_name", type=str, default='traffic')
     parser.add_argument("--cuda", type=str, default="cuda:0")
     parser.add_argument("--seed", type=int, default=1234)
     parser.add_argument("--n_trials", type=int, default=3)
-    parser.add_argument("--denoising", type=str, default="True")
-    parser.add_argument("--gp", type=str, default="False")
     parser.add_argument("--num_epochs", type=int, default=50)
 
     args = parser.parse_args()

@@ -144,7 +144,7 @@ def process_watershed(config):
 
     for i, site in enumerate(sites):
 
-        df = pd.read_csv('{}/{}_WQual_Level4.csv'.format(data_path, site), index_col=0, sep=',')
+        df = pd.read_csv('{}/{}_WQual_Level4.csv'.format("data/data_set", site), index_col=0, sep=',')
         df_list.append(df.iloc[0::4, :])
 
     output = pd.concat(df_list, axis=0)
