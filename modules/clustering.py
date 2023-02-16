@@ -8,7 +8,7 @@ import numpy as np
 
 
 class Clustering(nn.Module):
-    def __init__(self, *, device, num_clusters=5, d_model):
+    def __init__(self, *, device, num_clusters=3, d_model):
         super(Clustering, self).__init__()
 
         self.device = device
@@ -55,19 +55,20 @@ class Clustering(nn.Module):
         likelihood = dist.log_prob(torch.mean(cluster_k, dim=-1))
         loss = -torch.mean(likelihood) + self.cross_entropy(mu, mu)
 
-        ind_clusters = torch.argmax(cluster_q, dim=-1)
-        ind_clusters = ind_clusters.long()
+        scores = torch.einsum('blpc, bluc-> blpu', cluster_q, cluster_k)
+        mask_shape = [b, l_k, int(b / 2), int(b / 2)]
+        mask = np.triu(np.ones(mask_shape), k=1)
+        mask = torch.as_tensor(mask, dtype=torch.bool).to(self.device)
+        scores.masked_fill_(mask, -1e9)
+        attn = torch.softmax(scores, -1)
 
-        ind_clusters = ind_clusters.unsqueeze(-1).repeat(1, 1, 1, self.num_clusters)
+        cluster_q = torch.einsum('blpu, bluc-> blpc', attn, cluster_q)
 
-        cluster_centers = [torch.mean(cluster_q.clone().masked_fill_((ind_clusters == i), 0.0), dim=2)
-                           for i in range(self.num_clusters)]
+        cluster_center = self.proj_back_to_cluster_k(cluster_q).reshape(b, l_k, -1, d_k*h)
+        cluster_center = nn.MaxPool2d(kernel_size=(1, 9), padding=(0, int((9-1)/2)))(cluster_center)\
+            .reshape(b, h, -1, l_k, d_k)
 
-        cluster_center = torch.stack(cluster_centers)
-
-        cluster_center = self.proj_back_to_cluster_k(cluster_center).reshape(b, h, self.num_clusters, l_k, d_k)
-        scores_center = torch.einsum('bhqd, bhckd -> bhcqk', Q, cluster_center)
-        scores_center = torch.max(scores_center, dim=2)[0]
+        scores_center = torch.einsum('bhqd, bhckd -> bhqk', Q, cluster_center)
 
         attn = torch.softmax(scores_center, -1)
 
