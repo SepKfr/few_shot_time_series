@@ -55,7 +55,7 @@ class Clustering(nn.Module):
         likelihood = dist.log_prob(torch.mean(cluster_k, dim=-1))
         loss = -torch.mean(likelihood) + self.cross_entropy(mu, mu)
 
-        scores = torch.einsum('blpc, bluc-> blpu', cluster_q, cluster_k)
+        scores = torch.einsum('blpc, bluc-> blpu', cluster_q, cluster_k) / self.num_clusters
         mask_shape = [b, l_k, int(b / 2), int(b / 2)]
         mask = np.triu(np.ones(mask_shape), k=1)
         mask = torch.as_tensor(mask, dtype=torch.bool).to(self.device)
