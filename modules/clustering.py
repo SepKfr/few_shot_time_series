@@ -29,6 +29,9 @@ class Clustering(nn.Module):
 
         b, h, l, d_k = Q.shape
 
+        K = nn.MaxPool1d(kernel_size=9, padding=int((9-1)/2))(K.reshape(b, d_k*h, -1)).reshape(b, h, -1, d_k)
+        V = nn.MaxPool1d(kernel_size=9, padding=int((9-1)/2))(V.reshape(b, d_k*h, -1)).reshape(b, h, -1, d_k)
+
         l_k = K.shape[2]
 
         padding = torch.zeros(int(b/2), h, l_k, d_k, device=self.device)
