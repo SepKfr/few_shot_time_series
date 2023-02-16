@@ -45,15 +45,6 @@ class Clustering(nn.Module):
         cluster_k = self.cluster_k_proj(cluster_k_p)
         cluster_q = self.cluster_q_proj(cluster_k_p)
 
-        scores = torch.einsum('blpc, bluc-> blpu', cluster_q, cluster_k)
-        mask_shape = [b, l_k, int(b/2), int(b/2)]
-        mask = np.triu(np.ones(mask_shape), k=1)
-        mask = torch.as_tensor(mask, dtype=torch.bool).to(self.device)
-        scores.masked_fill_(mask, -1e9)
-        attn = torch.softmax(scores, -1)
-
-        cluster_q = torch.einsum('blpu, bluc-> blpc', attn, cluster_q)
-
         cluster_k = torch.softmax(cluster_k, dim=-1)
         cluster_q = torch.softmax(cluster_q, dim=-1)
 
