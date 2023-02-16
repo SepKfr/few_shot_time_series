@@ -8,7 +8,7 @@ import numpy as np
 
 
 class Clustering(nn.Module):
-    def __init__(self, *, device, num_clusters=5, d_model):
+    def __init__(self, *, device, num_clusters=3, d_model):
         super(Clustering, self).__init__()
 
         self.device = device
@@ -34,7 +34,7 @@ class Clustering(nn.Module):
 
         l_k = K.shape[2]
 
-        padding = torch.zeros_like(K)
+        padding = torch.zeros(int(b/2), h, l_k, d_k, device=self.device)
         K_padded = torch.cat([padding, K[1:]])
         K_unfold = K_padded.unfold(0, int(b/2), 1)
 
@@ -44,6 +44,15 @@ class Clustering(nn.Module):
 
         cluster_k = self.cluster_k_proj(cluster_k_p)
         cluster_q = self.cluster_q_proj(cluster_k_p)
+
+        scores = torch.einsum('blpc, bluc-> blpu', cluster_q, cluster_k)
+        mask_shape = [b, l_k, int(b/2), int(b/2)]
+        mask = np.triu(np.ones(mask_shape), k=1)
+        mask = torch.from_numpy(mask).to(self.device)
+        scores.masked_fill_(mask, -1e9)
+        attn = torch.softmax(scores, -1)
+
+        cluster_q = torch.einsum('blpu, bluc-> blpc', attn, cluster_q)
 
         cluster_k = torch.softmax(cluster_k, dim=-1)
         cluster_q = torch.softmax(cluster_q, dim=-1)
