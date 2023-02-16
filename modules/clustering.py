@@ -8,16 +8,20 @@ import numpy as np
 
 
 class Clustering(nn.Module):
-    def __init__(self, *, device, num_clusters=3, d_model):
+    def __init__(self, *, device, num_clusters=5, d_model):
         super(Clustering, self).__init__()
 
         self.device = device
         self.num_clusters = num_clusters
 
-        self.proj_to_cluster_k = nn.Sequential(nn.Linear(d_model, num_clusters,
+        self.proj_to_cluster_k = nn.Sequential(nn.Conv2d(d_model, num_clusters,
+                                                         kernel_size=(1, 3),
+                                                         padding=(0, 1),
                                                          device=self.device),
                                                          nn.ReLU())
-        self.proj_back_to_cluster_k = nn.Sequential(nn.Linear(num_clusters, d_model,
+        self.proj_back_to_cluster_k = nn.Sequential(nn.Conv2d(num_clusters, d_model,
+                                                              kernel_size=(1, 3),
+                                                              padding=(0, 1),
                                                               device=self.device),
                                                               nn.ReLU())
         self.cluster_k_proj = nn.Linear(num_clusters, num_clusters, device=self.device)
@@ -39,9 +43,9 @@ class Clustering(nn.Module):
         K_padded = torch.cat([padding, K[1:]])
         K_unfold = K_padded.unfold(0, unfolding, 1)
 
-        K_unfold = K_unfold.reshape(b, l_k, -1, d_k*h)
+        K_unfold = K_unfold.reshape(b, d_k*h, l_k, -1)
 
-        cluster_k_p = self.proj_to_cluster_k(K_unfold)
+        cluster_k_p = self.proj_to_cluster_k(K_unfold).permute(0, 2, 3, 1)
 
         cluster_k = self.cluster_k_proj(cluster_k_p)
         cluster_q = self.cluster_q_proj(cluster_k_p)
@@ -65,7 +69,7 @@ class Clustering(nn.Module):
 
         cluster_q = torch.einsum('blpu, bluc-> blpc', attn, cluster_q)
 
-        cluster_center = self.proj_back_to_cluster_k(cluster_q).reshape(b, h, -1, l_k, d_k)
+        cluster_center = self.proj_back_to_cluster_k(cluster_q.permute(0, 3, 1, 2)).reshape(b, h, -1, l_k, d_k)
 
         scores_center = torch.einsum('bhqd, bhckd -> bhqk', Q, cluster_center)
 
