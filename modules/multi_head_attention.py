@@ -4,14 +4,14 @@ import numpy as np
 import torch
 import torch.nn as nn
 from forecasting_models.ATA import ATA
-from forecasting_models.ConvAttn import ConvAttn
+from forecasting_models.BasicAttn import BasicAttn
 from forecasting_models.Informer import ProbAttention
 from forecasting_models.Autoformer import AutoCorrelation
 
 
 class MultiHeadAttention(nn.Module):
 
-    def __init__(self, d_model, d_k, d_v, n_heads, device, attn_type, seed):
+    def __init__(self, d_model, d_k, d_v, n_heads, device, attn_type, seed, few_shot):
 
         super(MultiHeadAttention, self).__init__()
 
@@ -32,6 +32,7 @@ class MultiHeadAttention(nn.Module):
         self.n_heads = n_heads
         self.attn_type = attn_type
         self.seed = seed
+        self.few_shot = few_shot
 
     def forward(self, Q, K, V, attn_mask):
 
@@ -43,8 +44,13 @@ class MultiHeadAttention(nn.Module):
         # ATA forecasting model
 
         if self.attn_type == "ATA":
-            context, attn = ATA(d_k=self.d_k, device=self.device, h=self.n_heads, seed=self.seed)(
-            Q=q_s, K=k_s, V=v_s, attn_mask=attn_mask)
+            if self.few_shot:
+                context, attn, loss = ATA(d_k=self.d_k, device=self.device, h=self.n_heads, seed=self.seed,
+                                          few_shot=self.few_shot)(
+                Q=q_s, K=k_s, V=v_s, attn_mask=attn_mask)
+            else:
+                context, attn = ATA(d_k=self.d_k, device=self.device, h=self.n_heads, seed=self.seed)(
+                    Q=q_s, K=k_s, V=v_s, attn_mask=attn_mask)
 
         # Autoformer forecasting model
 
@@ -54,9 +60,15 @@ class MultiHeadAttention(nn.Module):
 
         # CNN-trans forecasting model
 
-        elif self.attn_type == "conv_attn":
-            context, attn = ConvAttn(d_k=self.d_k, device=self.device, seed=self.seed, kernel=9, h=self.n_heads)(
-            Q=q_s, K=k_s, V=v_s, attn_mask=attn_mask)
+        elif self.attn_type == "basic_attn":
+            if self.few_shot:
+                context, attn, loss = BasicAttn(d_k=self.d_k, h=self.n_heads, device=self.device, seed=self.seed,
+                                                few_shot=self.few_shot)(
+                Q=q_s, K=k_s, V=v_s, attn_mask=attn_mask)
+            else:
+                context, attn = BasicAttn(d_k=self.d_k, h=self.n_heads, device=self.device, seed=self.seed,
+                                          few_shot=self.few_shot)(
+                Q=q_s, K=k_s, V=v_s, attn_mask=attn_mask)
 
         # Informer forecasting model
 
@@ -66,4 +78,7 @@ class MultiHeadAttention(nn.Module):
 
         context = context.transpose(1, 2).contiguous().view(batch_size, -1, self.n_heads * self.d_v)
         output = self.fc(context)
-        return output, attn
+        if self.few_shot:
+            return output, attn, loss
+        else:
+            return output, attn

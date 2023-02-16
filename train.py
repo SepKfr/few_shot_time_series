@@ -22,6 +22,7 @@ class Train:
 
         config = ExperimentConfig(pred_len, args.exp_name)
         self.data = data
+        self.few_shot = True if args.few_shot == "True" else False
         self.len_data = len(data)
         self.formatter = config.make_data_formatter()
         self.params = self.formatter.get_experiment_params()
@@ -55,7 +56,8 @@ class Train:
                             device=self.device,
                             seed=self.seed,
                             pred_len=self.pred_len,
-                            attn_type=self.attn_type).to(self.device)
+                            attn_type=self.attn_type,
+                            few_shot=self.few_shot).to(self.device)
 
         return model
 
@@ -136,8 +138,12 @@ class Train:
             model.train()
             for train_enc, train_dec, train_y in self.train:
 
-                output = model(train_enc.to(self.device), train_dec.to(self.device))
-                loss = nn.MSELoss()(output, train_y.to(self.device))
+                if self.few_shot:
+                    output, cluster_loss = model(train_enc.to(self.device), train_dec.to(self.device))
+                    loss = nn.MSELoss()(output, train_y.to(self.device)) + 0.001 * cluster_loss
+                else:
+                    output = model(train_enc.to(self.device), train_dec.to(self.device))
+                    loss = nn.MSELoss()(output, train_y.to(self.device))
 
                 total_loss += loss.item()
 
@@ -149,8 +155,12 @@ class Train:
             test_loss = 0
             for valid_enc, valid_dec, valid_y in self.valid:
 
-                output = model(valid_enc.to(self.device), valid_dec.to(self.device))
-                loss = nn.MSELoss()(output, valid_y.to(self.device))
+                if self.few_shot:
+                    output, cluster_loss = model(valid_enc.to(self.device), valid_dec.to(self.device))
+                    loss = nn.MSELoss()(output, valid_y.to(self.device)) + 0.001 * cluster_loss
+                else:
+                    output = model(valid_enc.to(self.device), valid_dec.to(self.device))
+                    loss = nn.MSELoss()(output, valid_y.to(self.device))
 
                 test_loss += loss.item()
 
@@ -182,7 +192,10 @@ class Train:
 
         for test_enc, test_dec, test_y in self.test:
 
-            output = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
+            if self.few_shot:
+                output, _ = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
+            else:
+                output = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
 
             predictions[j, :output.shape[0], :] = output.squeeze(-1).cpu().detach().numpy()
             test_y_tot[j, :test_y.shape[0], :] = test_y.squeeze(-1).cpu().detach().numpy()
@@ -224,13 +237,14 @@ class Train:
 def main():
 
     parser = argparse.ArgumentParser(description="preprocess argument parser")
-    parser.add_argument("--attn_type", type=str, default='conv_attn')
-    parser.add_argument("--model_name", type=str, default="conv_attn")
+    parser.add_argument("--attn_type", type=str, default='basic_attn')
+    parser.add_argument("--model_name", type=str, default="basic_attn")
     parser.add_argument("--exp_name", type=str, default='traffic')
     parser.add_argument("--cuda", type=str, default="cuda:0")
     parser.add_argument("--seed", type=int, default=1899)
     parser.add_argument("--n_trials", type=int, default=50)
     parser.add_argument("--num_epochs", type=int, default=80)
+    parser.add_argument("--few_shot", type=str, default="True")
 
     args = parser.parse_args()
 

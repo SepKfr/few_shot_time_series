@@ -3,12 +3,14 @@ import torch.nn as nn
 import numpy as np
 import random
 
+from modules.clustering import Clustering
+
 torch.backends.cudnn.benchmark = False
 torch.backends.cudnn.deterministic = True
 
 
 class ATA(nn.Module):
-    def __init__(self, d_k, device, h, seed):
+    def __init__(self, *, d_k, device, h, seed, few_shot=False):
 
         super(ATA, self).__init__()
 
@@ -40,6 +42,10 @@ class ATA(nn.Module):
         self.proj_back_q = nn.Linear(1, self.d_k, bias=False).to(device)
         self.proj_back_k = nn.Linear(1, self.d_k, bias=False).to(device)
 
+        self.few_shot = few_shot
+        if self.few_shot:
+            self.clustering = Clustering(device=device, d_model=d_k*h)
+            self.layer_norm = nn.LayerNorm(d_k, device=device)
         self.factor = 1
 
     def forward(self, Q, K, V, attn_mask):
@@ -69,8 +75,16 @@ class ATA(nn.Module):
         K = torch.max(K_proj, dim=-1)[0].unsqueeze(-1)
         K = self.proj_back_k(K)
 
-        scores = torch.einsum('bhqd,bhkd->bhqk', Q, K) / np.sqrt(self.d_k)
+        if self.few_shot:
+            context_clustering, loss = self.clustering(Q, K, V)
+            scores = torch.einsum('bhqd,bhkd->bhqk', Q, K) / np.sqrt(self.d_k)
+            attn = torch.softmax(scores, -1)
+            context = torch.einsum('bhqk,bhkd->bhqd', attn, V)
+            context_final = self.layer_norm(context + context_clustering)
+            return context_final, attn, loss
 
-        attn = torch.softmax(scores, -1)
-        context = torch.einsum('bhqk,bhkd->bhqd', attn, V)
-        return context, attn
+        else:
+            scores = torch.einsum('bhqd,bhkd->bhqk', Q, K) / np.sqrt(self.d_k)
+            attn = torch.softmax(scores, -1)
+            context = torch.einsum('bhqk,bhkd->bhqd', attn, V)
+            return context, attn
