@@ -140,7 +140,7 @@ class Train:
 
                 if self.few_shot:
                     output, cluster_loss = model(train_enc.to(self.device), train_dec.to(self.device))
-                    loss = nn.MSELoss()(output, train_y.to(self.device)) + 0.001 * cluster_loss
+                    loss = nn.MSELoss()(output, train_y.to(self.device)) + 0.005 * cluster_loss
                 else:
                     output = model(train_enc.to(self.device), train_dec.to(self.device))
                     loss = nn.MSELoss()(output, train_y.to(self.device))
@@ -157,7 +157,7 @@ class Train:
 
                 if self.few_shot:
                     output, cluster_loss = model(valid_enc.to(self.device), valid_dec.to(self.device))
-                    loss = nn.MSELoss()(output, valid_y.to(self.device)) + 0.001 * cluster_loss
+                    loss = nn.MSELoss()(output, valid_y.to(self.device)) + 0.005 * cluster_loss
                 else:
                     output = model(valid_enc.to(self.device), valid_dec.to(self.device))
                     loss = nn.MSELoss()(output, valid_y.to(self.device))
@@ -243,7 +243,7 @@ def main():
     parser.add_argument("--cuda", type=str, default="cuda:0")
     parser.add_argument("--seed", type=int, default=1899)
     parser.add_argument("--n_trials", type=int, default=50)
-    parser.add_argument("--num_epochs", type=int, default=80)
+    parser.add_argument("--num_epochs", type=int, default=50)
     parser.add_argument("--few_shot", type=str, default="True")
 
     args = parser.parse_args()
