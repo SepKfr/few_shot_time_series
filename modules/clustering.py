@@ -29,9 +29,6 @@ class Clustering(nn.Module):
 
         b, h, l, d_k = Q.shape
 
-        K = nn.MaxPool1d(kernel_size=9, padding=int((9-1)/2))(K.reshape(b, d_k*h, -1)).reshape(b, h, -1, d_k)
-        V = nn.MaxPool1d(kernel_size=9, padding=int((9-1)/2))(V.reshape(b, d_k*h, -1)).reshape(b, h, -1, d_k)
-
         l_k = K.shape[2]
 
         padding = torch.zeros(int(b/2), h, l_k, d_k, device=self.device)
@@ -66,10 +63,5 @@ class Clustering(nn.Module):
         cluster_center = torch.stack(cluster_centers)
 
         cluster_center = self.proj_back_to_cluster_k(cluster_center).reshape(b, h, self.num_clusters, l_k, d_k)
-        scores_center = torch.einsum('bhqd, bhckd -> bhqk', Q, cluster_center)
 
-        attn = torch.softmax(scores_center, -1)
-
-        context = torch.einsum('bhqk, bhkd -> bhqd', attn, V)
-
-        return context, loss
+        return cluster_center, loss
