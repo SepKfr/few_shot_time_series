@@ -28,15 +28,16 @@ class Clustering(nn.Module):
     def forward(self, Q, K, V):
 
         b, h, l, d_k = Q.shape
+        unfolding = 3 * self.num_clusters
 
         K = nn.MaxPool1d(kernel_size=9, padding=int((9-1)/2))(K.reshape(b, d_k*h, -1)).reshape(b, h, -1, d_k)
         V = nn.MaxPool1d(kernel_size=9, padding=int((9-1)/2))(V.reshape(b, d_k*h, -1)).reshape(b, h, -1, d_k)
 
         l_k = K.shape[2]
 
-        padding = torch.zeros(int(b/2), h, l_k, d_k, device=self.device)
+        padding = torch.zeros(unfolding, h, l_k, d_k, device=self.device)
         K_padded = torch.cat([padding, K[1:]])
-        K_unfold = K_padded.unfold(0, int(b/2), 1)
+        K_unfold = K_padded.unfold(0, unfolding, 1)
 
         K_unfold = K_unfold.reshape(b, l_k, -1, d_k*h)
 
@@ -56,7 +57,7 @@ class Clustering(nn.Module):
         loss = -torch.mean(likelihood) + self.cross_entropy(mu, mu)
 
         scores = torch.einsum('blpc, bluc-> blpu', cluster_q, cluster_k) / self.num_clusters
-        mask_shape = [b, l_k, int(b / 2), int(b / 2)]
+        mask_shape = [b, l_k, unfolding, unfolding]
         mask = np.triu(np.ones(mask_shape), k=1)
         mask = torch.as_tensor(mask, dtype=torch.bool).to(self.device)
         scores.masked_fill_(mask, -1e9)
@@ -64,9 +65,7 @@ class Clustering(nn.Module):
 
         cluster_q = torch.einsum('blpu, bluc-> blpc', attn, cluster_q)
 
-        cluster_center = self.proj_back_to_cluster_k(cluster_q).reshape(b, l_k, -1, d_k*h)
-        cluster_center = nn.MaxPool2d(kernel_size=(1, 9), padding=(0, int((9-1)/2)))(cluster_center)\
-            .reshape(b, h, -1, l_k, d_k)
+        cluster_center = self.proj_back_to_cluster_k(cluster_q).reshape(b, h, -1, l_k, d_k)
 
         scores_center = torch.einsum('bhqd, bhckd -> bhqk', Q, cluster_center)
 
