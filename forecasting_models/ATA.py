@@ -45,7 +45,7 @@ class ATA(nn.Module):
         self.few_shot = few_shot
         if self.few_shot:
             self.clustering = Clustering(device=device, d_model=d_k*h)
-            self.layer_norm = nn.LayerNorm(d_k, device=device)
+            self.layer_norm = nn.LayerNorm(d_k, elementwise_affine=False, device=device)
         self.factor = 1
 
     def forward(self, Q, K, V, attn_mask):
