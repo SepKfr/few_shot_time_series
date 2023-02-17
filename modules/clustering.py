@@ -28,7 +28,7 @@ class Clustering(nn.Module):
     def forward(self, Q, K, V):
 
         b, h, l, d_k = Q.shape
-        unfolding = int(b/2)
+        unfolding = 4 * self.num_clusters
 
         K = nn.MaxPool1d(kernel_size=9, padding=int((9-1)/2))(K.reshape(b, d_k*h, -1)).reshape(b, h, -1, d_k)
         V = nn.MaxPool1d(kernel_size=9, padding=int((9-1)/2))(V.reshape(b, d_k*h, -1)).reshape(b, h, -1, d_k)
@@ -40,10 +40,6 @@ class Clustering(nn.Module):
         K_unfold = K_padded.unfold(0, unfolding, 1)
 
         K_unfold = K_unfold.reshape(b, d_k*h, l_k, -1)
-
-        K_unfold = nn.MaxPool2d(kernel_size=(1, 9), padding=(0, int((9-1)/2)))(K_unfold)
-
-        unfolding = K_unfold.shape[-1]
 
         cluster_k_p = self.proj_to_cluster_k(K_unfold).permute(0, 2, 3, 1)
 
