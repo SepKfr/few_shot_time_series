@@ -15,13 +15,13 @@ class Clustering(nn.Module):
         self.num_clusters = num_clusters
 
         self.proj_to_cluster_k = nn.Sequential(nn.Conv2d(d_model, num_clusters,
-                                                         kernel_size=(1, 9),
-                                                         padding=(0, int((9-1)/2)),
+                                                         kernel_size=(1, 3),
+                                                         padding=(0, 1),
                                                          device=self.device),
                                                          nn.ReLU())
         self.proj_back_to_cluster_k = nn.Sequential(nn.Conv2d(num_clusters, d_model,
-                                                              kernel_size=(1, 9),
-                                                              padding=(0, int((9-1)/2)),
+                                                              kernel_size=(1, 3),
+                                                              padding=(0, 1),
                                                               device=self.device),
                                                               nn.ReLU())
         self.cluster_k_proj = nn.Linear(num_clusters, num_clusters, device=self.device)
