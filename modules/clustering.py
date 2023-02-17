@@ -28,7 +28,7 @@ class Clustering(nn.Module):
     def forward(self, Q, K, V):
 
         b, h, l, d_k = Q.shape
-        unfolding = b
+        unfolding = int(b/2)
 
         K = nn.MaxPool1d(kernel_size=9, padding=int((9-1)/2))(K.reshape(b, d_k*h, -1)).reshape(b, h, -1, d_k)
         V = nn.MaxPool1d(kernel_size=9, padding=int((9-1)/2))(V.reshape(b, d_k*h, -1)).reshape(b, h, -1, d_k)
