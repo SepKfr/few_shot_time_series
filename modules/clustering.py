@@ -20,8 +20,17 @@ class Clustering(nn.Module):
                                                               padding=(0, 1),
                                                               device=self.device),
                                                               nn.ReLU())
-        self.cluster_k_proj = nn.Linear(num_clusters, num_clusters, device=self.device)
-        self.cluster_q_proj = nn.Linear(num_clusters, num_clusters, device=self.device)
+        self.cluster_k_proj = nn.Sequential(nn.Conv2d(num_clusters, num_clusters,
+                                            kernel_size=(1, 3),
+                                            padding=(0, 1),
+                                            device=self.device),
+                                            nn.ReLU())
+
+        self.cluster_q_proj = nn.Sequential(nn.Conv2d(num_clusters, num_clusters,
+                                            kernel_size=(1, 3),
+                                            padding=(0, 1),
+                                            device=self.device),
+                                            nn.ReLU())
 
         self.cross_entropy = nn.CrossEntropyLoss()
 
@@ -41,10 +50,10 @@ class Clustering(nn.Module):
 
         K_unfold = K_unfold.reshape(b, d_k*h, l_k, -1)
 
-        cluster_k_p = self.proj_to_cluster_k(K_unfold).permute(0, 2, 3, 1)
+        cluster_k_p = self.proj_to_cluster_k(K_unfold)
 
-        cluster_k = self.cluster_k_proj(cluster_k_p)
-        cluster_q = self.cluster_q_proj(cluster_k_p)
+        cluster_k = self.cluster_k_proj(cluster_k_p).permute(0, 2, 3, 1)
+        cluster_q = self.cluster_q_proj(cluster_k_p).permute(0, 2, 3, 1)
 
         cluster_k = torch.softmax(cluster_k, dim=-1)
         cluster_q = torch.softmax(cluster_q, dim=-1)
