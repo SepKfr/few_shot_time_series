@@ -4,7 +4,7 @@ import numpy as np
 
 
 class Clustering(nn.Module):
-    def __init__(self, *, device, num_clusters=5, d_model):
+    def __init__(self, *, device, num_clusters=10, d_model):
         super(Clustering, self).__init__()
 
         self.device = device
@@ -28,10 +28,7 @@ class Clustering(nn.Module):
     def forward(self, Q, K, V):
 
         b, h, l, d_k = Q.shape
-        unfolding = 4 * self.num_clusters
-
-        K = nn.MaxPool1d(kernel_size=9, padding=int((9-1)/2))(K.reshape(b, d_k*h, -1)).reshape(b, h, -1, d_k)
-        V = nn.MaxPool1d(kernel_size=9, padding=int((9-1)/2))(V.reshape(b, d_k*h, -1)).reshape(b, h, -1, d_k)
+        unfolding = self.num_clusters
 
         l_k = K.shape[2]
 
