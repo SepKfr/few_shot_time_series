@@ -29,10 +29,11 @@ class Clustering(nn.Module):
     def forward(self, K):
 
         b, h, l_k, d_k = K.shape
+        unfolding = int(b/4)
 
-        padding = torch.zeros(int(b/2), h, l_k, d_k, device=self.device)
+        padding = torch.zeros(unfolding, h, l_k, d_k, device=self.device)
         K_padded = torch.cat([padding, K[1:]])
-        K_unfold = K_padded.unfold(0, int(b/2), 1)
+        K_unfold = K_padded.unfold(0, unfolding, 1)
 
         K_unfold = K_unfold.reshape(b, l_k, -1, d_k*h)
 
