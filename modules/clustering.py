@@ -1,10 +1,5 @@
-import math
-
-import numpy
-import torch.nn.functional as F
 import torch.nn as nn
 import torch
-import numpy as np
 
 
 class Clustering(nn.Module):
@@ -20,8 +15,10 @@ class Clustering(nn.Module):
         self.proj_back_to_cluster_k = nn.Sequential(nn.Linear(num_clusters, d_model,
                                                               device=self.device),
                                                               nn.ReLU())
-        self.cluster_k_proj = nn.Linear(num_clusters, num_clusters, device=self.device)
-        self.cluster_q_proj = nn.Linear(num_clusters, num_clusters, device=self.device)
+        self.cluster_k_proj = nn.Sequential(nn.Linear(num_clusters, num_clusters, device=self.device),
+                                            nn.ReLU())
+        self.cluster_q_proj = nn.Sequential(nn.Linear(num_clusters, num_clusters, device=self.device),
+                                            nn.ReLU())
 
         self.cross_entropy = nn.CrossEntropyLoss()
 
@@ -29,8 +26,8 @@ class Clustering(nn.Module):
 
         b, h, l, d_k = Q.shape
 
-        K = nn.MaxPool1d(kernel_size=9, padding=int((9-1)/2))(K.reshape(b, d_k*h, -1)).reshape(b, h, -1, d_k)
-        V = nn.MaxPool1d(kernel_size=9, padding=int((9-1)/2))(V.reshape(b, d_k*h, -1)).reshape(b, h, -1, d_k)
+        K = nn.AvgPool1d(kernel_size=9, padding=int((9-1)/2))(K.reshape(b, d_k*h, -1)).reshape(b, h, -1, d_k)
+        V = nn.AvgPool1d(kernel_size=9, padding=int((9-1)/2))(V.reshape(b, d_k*h, -1)).reshape(b, h, -1, d_k)
 
         l_k = K.shape[2]
 
