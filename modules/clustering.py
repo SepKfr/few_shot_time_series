@@ -15,12 +15,12 @@ class Clustering(nn.Module):
         self.proj_back_to_cluster_k = nn.Sequential(nn.Linear(num_clusters, d_model,
                                                               device=self.device),
                                                               nn.ReLU())
-        self.cluster_k_proj = nn.Sequential(nn.Linear(num_clusters, num_clusters, device=self.device),
-                                            nn.ReLU())
-        self.cluster_q_proj = nn.Sequential(nn.Linear(num_clusters, num_clusters, device=self.device),
-                                            nn.ReLU())
+        self.cluster_k_proj = nn.Linear(num_clusters, num_clusters, device=self.device)
+
+        self.cluster_q_proj = nn.Linear(num_clusters, num_clusters, device=self.device)
 
         self.cross_entropy = nn.CrossEntropyLoss()
+        self.dropout = nn.Dropout(0.1)
 
     def forward(self, Q, K, V):
 
@@ -63,11 +63,11 @@ class Clustering(nn.Module):
         cluster_center = torch.stack(cluster_centers)
 
         cluster_center = self.proj_back_to_cluster_k(cluster_center).reshape(b, h, self.num_clusters, l_k, d_k)
-        scores_center = torch.einsum('bhqd, bhckd -> bhcqk', Q, cluster_center)
-        scores_center = torch.max(scores_center, dim=2)[0]
+        scores_center = torch.einsum('bhqd, bhckd -> bhqk', Q, cluster_center)
 
         attn = torch.softmax(scores_center, -1)
 
         context = torch.einsum('bhqk, bhkd -> bhqd', attn, V)
+        context = self.dropout(context)
 
         return context, loss
