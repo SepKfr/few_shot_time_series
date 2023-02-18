@@ -18,13 +18,13 @@ class Clustering(nn.Module):
                                                          kernel_size=(1, 3),
                                                          padding=(0, 1),
                                                          device=self.device),
-                                                         nn.BatchNorm2d(num_clusters),
+                                                         nn.BatchNorm2d(num_clusters, device=self.device),
                                                          nn.Softmax(dim=-1))
         self.proj_back_to_cluster_k = nn.Sequential(nn.Conv2d(num_clusters, d_model,
                                                               device=self.device,
                                                               kernel_size=(1, 3),
                                                               padding=(0, 1)),
-                                                              nn.BatchNorm2d(d_model),
+                                                              nn.BatchNorm2d(d_model, device=self.device),
                                                               nn.Softmax(dim=-1))
         self.cluster_k_proj = nn.Linear(num_clusters, num_clusters, device=self.device)
         self.cluster_q_proj = nn.Linear(num_clusters, num_clusters, device=self.device)
