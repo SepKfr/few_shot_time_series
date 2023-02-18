@@ -63,7 +63,8 @@ class Clustering(nn.Module):
         cluster_center = torch.stack(cluster_centers)
 
         cluster_center = self.proj_back_to_cluster_k(cluster_center).reshape(b, h, self.num_clusters, l_k, d_k)
-        scores_center = torch.einsum('bhqd, bhckd -> bhqk', Q, cluster_center)
+        scores_center = torch.einsum('bhqd, bhckd -> bhcqk', Q, cluster_center)
+        scores_center = torch.max(scores_center, dim=2)[0]
 
         attn = torch.softmax(scores_center, -1)
 
