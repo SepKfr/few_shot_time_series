@@ -10,11 +10,14 @@ class Clustering(nn.Module):
         self.device = device
         self.num_clusters = num_clusters
 
-        self.proj_back_to_cluster_k = nn.Linear(num_clusters, d_model, device=self.device)
+        self.proj_back_to_cluster_k = nn.Sequential(nn.Linear(num_clusters, d_model, device=self.device),
+                                            nn.Sigmoid())
 
-        self.cluster_k_proj = nn.Linear(d_model, num_clusters, device=self.device)
+        self.cluster_k_proj = nn.Sequential(nn.Linear(d_model, num_clusters, device=self.device),
+                                            nn.Sigmoid())
 
-        self.cluster_q_proj = nn.Linear(d_model, num_clusters, device=self.device)
+        self.cluster_q_proj = nn.Sequential(nn.Linear(d_model, num_clusters, device=self.device),
+                                            nn.Sigmoid())
 
         self.cross_entropy = nn.CrossEntropyLoss()
 
@@ -27,13 +30,15 @@ class Clustering(nn.Module):
 
         l_k = K.shape[2]
 
-        unfolding = 5 * self.num_clusters
+        unfolding = b
 
         padding = torch.zeros(unfolding, h, l_k, d_k, device=self.device)
         K_padded = torch.cat([padding, K[1:]])
         K_unfold = K_padded.unfold(0, unfolding, 1)
 
-        K_unfold = K_unfold.reshape(b, l_k, -1, d_k*h)
+        K_unfold = K_unfold.reshape(b, d_k*h, l_k, -1)
+        K_unfold = nn.MaxPool2d(kernel_size=(1, 9), padding=(0, int((9-1)/2)))(K_unfold)\
+            .reshape(b, l_k, -1, d_k*h)
 
         scores = torch.einsum('blcd, blvd -> blcv', K_unfold, K_unfold) / np.sqrt(d_k*h)
         attn = torch.softmax(scores, dim=-1)
