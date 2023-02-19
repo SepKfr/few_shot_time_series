@@ -156,8 +156,8 @@ class Train:
             for valid_enc, valid_dec, valid_y in self.valid:
 
                 if self.few_shot:
-                    output, cluster_loss = model(valid_enc.to(self.device), valid_dec.to(self.device))
-                    loss = nn.MSELoss()(output, valid_y.to(self.device)) + 0.001 * cluster_loss
+                    output, _ = model(valid_enc.to(self.device), valid_dec.to(self.device))
+                    loss = nn.MSELoss()(output, valid_y.to(self.device))
                 else:
                     output = model(valid_enc.to(self.device), valid_dec.to(self.device))
                     loss = nn.MSELoss()(output, valid_y.to(self.device))
