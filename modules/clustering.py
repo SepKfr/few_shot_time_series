@@ -4,7 +4,7 @@ import torch
 
 
 class Clustering(nn.Module):
-    def __init__(self, *, device, num_clusters=5, d_model):
+    def __init__(self, *, device, num_clusters=5, d_model, d_k):
         super(Clustering, self).__init__()
 
         self.device = device
@@ -20,6 +20,7 @@ class Clustering(nn.Module):
                                             nn.Sigmoid())
 
         self.cross_entropy = nn.CrossEntropyLoss()
+        self.layer_norm = nn.LayerNorm(d_k, elementwise_affine=False, device=device)
 
     def forward(self, Q, K, V):
 
@@ -70,6 +71,6 @@ class Clustering(nn.Module):
 
         attn = torch.softmax(scores_center, -1)
 
-        context = torch.einsum('bhqk, bhkd -> bhqd', attn, V)
+        context = torch.einsum('bhqk, bhkd -> bhqd', attn, V) + Q
 
         return context, loss
