@@ -36,7 +36,7 @@ class Clustering(nn.Module):
         K_padded = torch.cat([padding, K[1:]])
         K_unfold = K_padded.unfold(0, unfolding, 1)
 
-        K_unfold = K_unfold.reshape(b, d_k*h, l_k, -1)
+        K_unfold = K_unfold.reshape(b, l_k, -1, d_k*h)
 
         scores = torch.einsum('blcd, blvd -> blcv', K_unfold, K_unfold) / np.sqrt(d_k*h)
         attn = torch.softmax(scores, dim=-1)
