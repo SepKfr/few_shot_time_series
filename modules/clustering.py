@@ -71,6 +71,6 @@ class Clustering(nn.Module):
 
         attn = torch.softmax(scores_center, -1)
 
-        context = torch.einsum('bhqk, bhkd -> bhqd', attn, V) + Q
+        context = self.layer_norm(torch.einsum('bhqk, bhkd -> bhqd', attn, V) + Q)
 
         return context, loss
