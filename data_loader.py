@@ -180,10 +180,10 @@ def download_weather(args):
     data_folder = args.data_folder
 
     def get_dfs(url, csv, zip):
-        csv_path = os.path.join(data_folder, csv)
+        csv_path = data_folder
         zip_path = os.path.join(data_folder, zip)
         download_and_unzip(url, zip_path, csv_path, data_folder)
-        return pd.read_csv(csv_path, index_col=0, encoding='unicode_escape')
+        return pd.read_csv(os.path.join(data_folder, csv), index_col=0, encoding='unicode_escape')
 
     url_list = ['https://www.bgc-jena.mpg.de/wetter/mpi_roof_2008a.zip',
                 'https://www.bgc-jena.mpg.de/wetter/mpi_roof_2008b.zip',
