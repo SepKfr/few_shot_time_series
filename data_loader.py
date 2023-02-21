@@ -29,7 +29,7 @@ import glob
 from tqdm import tqdm
 
 
-from data import air_quality, electricity, traffic, watershed, solar, weather
+from data import air_quality, electricity, traffic, watershed, solar, weather, covid
 
 
 class ExperimentConfig(object):
@@ -87,7 +87,8 @@ class ExperimentConfig(object):
             'air_quality': air_quality.AirQualityFormatter,
             'watershed': watershed.WatershedFormatter,
             'solar': solar.SolarFormatter,
-            'weather': weather.weatherFormatter
+            'weather': weather.weatherFormatter,
+            'covid': covid.CovidFormatter
         }
 
         return data_formatter_class[self.experiment](self.pred_len)
