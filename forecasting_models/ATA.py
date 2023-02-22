@@ -49,8 +49,6 @@ class ATA(nn.Module):
             self.layer_norm = nn.LayerNorm(d_k, elementwise_affine=False, device=device)
             self.w1 = PoswiseFeedForwardNet(
                 d_model=self.d_k, d_ff=self.d_k*4, seed=seed).to(self.device)
-            self.w2 = PoswiseFeedForwardNet(
-                d_model=self.d_k, d_ff=self.d_k*4, seed=seed).to(self.device)
         self.factor = 1
 
     def forward(self, Q, K, V, attn_mask):
@@ -85,7 +83,7 @@ class ATA(nn.Module):
             scores = torch.einsum('bhqd,bhkd->bhqk', Q, K) / np.sqrt(self.d_k)
             attn = torch.softmax(scores, -1)
             context = torch.einsum('bhqk,bhkd->bhqd', attn, V)
-            context_final = self.layer_norm(self.w1(context) + self.w2(context_clustering))
+            context_final = self.layer_norm(context + self.w1(context_clustering))
 
             return context_final, attn, loss
 
