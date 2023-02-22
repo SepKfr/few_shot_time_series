@@ -204,7 +204,7 @@ class Train:
         test_y = torch.from_numpy(test_y_tot)
         normaliser = test_y.abs().mean()
 
-        test_loss = F.mse_loss(predictions, test_y).item()
+        test_loss = np.sqrt(F.mse_loss(predictions, test_y).item())
         test_loss = test_loss / normaliser
 
         mae_loss = F.l1_loss(predictions, test_y).item()
