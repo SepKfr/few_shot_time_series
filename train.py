@@ -164,8 +164,8 @@ class Train:
                 test_loss += loss.item()
 
             if epoch % 5 == 0:
-                print("Train epoch: {}, loss: {:.4f}".format(epoch, np.sqrt(total_loss)))
-                print("val loss: {:.4f}".format(np.sqrt(test_loss)))
+                print("Train epoch: {}, loss: {:.4f}".format(epoch, total_loss))
+                print("val loss: {:.4f}".format(test_loss))
 
             if test_loss < val_loss:
                 val_loss = test_loss
@@ -204,7 +204,7 @@ class Train:
         test_y = torch.from_numpy(test_y_tot)
         normaliser = test_y.abs().mean()
 
-        test_loss = np.sqrt(F.mse_loss(predictions, test_y).item())
+        test_loss = F.mse_loss(predictions, test_y).item()
         test_loss = test_loss / normaliser
 
         mae_loss = F.l1_loss(predictions, test_y).item()
