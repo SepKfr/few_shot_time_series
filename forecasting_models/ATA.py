@@ -47,10 +47,7 @@ class ATA(nn.Module):
         if self.few_shot:
             self.clustering = Clustering(device=device, d_model=d_k*h)
             self.layer_norm = nn.LayerNorm(d_k, elementwise_affine=False, device=device)
-            self.w1 = PoswiseFeedForwardNet(
-                d_model=self.d_k, d_ff=self.d_k*4, seed=seed).to(self.device)
-            self.w2 = PoswiseFeedForwardNet(
-                d_model=self.d_k, d_ff=self.d_k*4, seed=seed).to(self.device)
+            self.w1 = nn.Linear(d_k, d_k, device=self.device)
         self.factor = 1
 
     def forward(self, Q, K, V, attn_mask):
