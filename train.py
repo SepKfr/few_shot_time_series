@@ -112,13 +112,14 @@ class Train:
         # hyperparameters
 
         d_model = trial.suggest_categorical("d_model", [16, 32])
-        n_heads = trial.suggest_categorical("n_heads", [8])
-        w_steps = trial.suggest_categorical("w_steps", [1000])
+        w_steps = trial.suggest_categorical("w_steps", [1000, 2000])
         stack_size = trial.suggest_categorical("stack_size", [1])
 
-        if [d_model, stack_size, w_steps, n_heads] in self.param_history:
+        n_heads = self.model_params['num_heads']
+
+        if [d_model, stack_size, w_steps] in self.param_history:
             raise optuna.exceptions.TrialPruned()
-        self.param_history.append([d_model, stack_size, w_steps, n_heads])
+        self.param_history.append([d_model, stack_size, w_steps])
 
         d_k = int(d_model / n_heads)
 
