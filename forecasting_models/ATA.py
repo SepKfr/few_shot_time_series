@@ -82,7 +82,7 @@ class ATA(nn.Module):
             scores = torch.einsum('bhqd,bhkd->bhqk', Q, K) / np.sqrt(self.d_k)
             attn = torch.softmax(scores, -1)
             context = torch.einsum('bhqk,bhkd->bhqd', attn, V)
-            context_final = self.layer_norm(self.w1(context) + self.w2(context_clustering))
+            context_final = self.layer_norm(context + self.w1(context_clustering))
 
             return context_final, attn, loss
 
