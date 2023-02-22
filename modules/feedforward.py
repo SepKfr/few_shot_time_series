@@ -24,4 +24,4 @@ class PoswiseFeedForwardNet(nn.Module):
 
     def forward(self, inputs):
 
-        return self.w_2(F.relu(self.w_1(inputs)))
+        return self.w_2(nn.GELU()(self.w_1(inputs)))
