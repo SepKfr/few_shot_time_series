@@ -48,7 +48,7 @@ class ATA(nn.Module):
             self.clustering = Clustering(device=device, d_model=d_k*h)
             self.layer_norm = nn.LayerNorm(d_k, elementwise_affine=False, device=device)
             self.w1 = nn.Sequential(nn.Linear(d_k, d_k, device=self.device),
-                                    nn.GELU())
+                                    nn.ReLU())
         self.factor = 1
 
     def forward(self, Q, K, V, attn_mask):
