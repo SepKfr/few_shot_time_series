@@ -164,8 +164,8 @@ class Train:
                 test_loss += loss.item()
 
             if epoch % 5 == 0:
-                print("Train epoch: {}, loss: {:.4f}".format(epoch, total_loss))
-                print("val loss: {:.4f}".format(test_loss))
+                print("Train epoch: {}, loss: {:.4f}".format(epoch, np.sqrt(total_loss)))
+                print("val loss: {:.4f}".format(np.sqrt(test_loss)))
 
             if test_loss < val_loss:
                 val_loss = test_loss
