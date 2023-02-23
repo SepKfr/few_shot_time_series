@@ -15,11 +15,11 @@ class Clustering(nn.Module):
 
         self.cluster_k_proj = nn.Sequential(nn.Conv2d(d_model, num_clusters,
                                                       kernel_size=(1, 9), padding=(0, int((9-1)/2))),
-                                            nn.ReLU())
+                                            nn.ReLU()).to(device)
 
         self.cluster_q_proj = nn.Sequential(nn.Conv2d(d_model, num_clusters,
                                                       kernel_size=(1, 9), padding=(0, int((9-1)/2))),
-                                            nn.ReLU())
+                                            nn.ReLU()).to(device)
 
         self.cross_entropy = nn.CrossEntropyLoss()
 
