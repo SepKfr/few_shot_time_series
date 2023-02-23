@@ -79,10 +79,16 @@ class ATA(nn.Module):
         K = self.proj_back_k(K)
 
         if self.few_shot:
-            context_clustering, loss = self.clustering(Q, K, V)
+            cluster_center, V_shrink, loss = self.clustering(K, V)
+
             scores = torch.einsum('bhqd,bhkd->bhqk', Q, K) / np.sqrt(self.d_k)
             attn = torch.softmax(scores, -1)
             context = torch.einsum('bhqk,bhkd->bhqd', attn, V)
+
+            scores = torch.einsum('bhqd,bhkd->bhqk', Q, cluster_center) / np.sqrt(self.d_k)
+            attn = torch.softmax(scores, -1)
+            context_clustering = torch.einsum('bhqk,bhkd->bhqd', attn, V_shrink)
+
             context_final = self.layer_norm(context + self.w1(context_clustering))
 
             return context_final, attn, loss

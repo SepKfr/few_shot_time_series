@@ -5,6 +5,8 @@ import torch
 import torch.nn as nn
 import math
 
+from modules.clustering import Clustering
+
 
 class AutoCorrelation(nn.Module):
     """
@@ -13,7 +15,9 @@ class AutoCorrelation(nn.Module):
     (2) time delay aggregation
     This block can replace the self-attention family mechanism seamlessly.
     """
-    def __init__(self, seed, mask_flag=True, factor=1, scale=None, attention_dropout=0.1, output_attention=False):
+    def __init__(self, *, seed, mask_flag=True, factor=1,
+                 scale=None, attention_dropout=0.1,
+                 output_attention=False, d_k, h, device, few_shot):
 
         super(AutoCorrelation, self).__init__()
 
@@ -26,6 +30,13 @@ class AutoCorrelation(nn.Module):
         self.mask_flag = mask_flag
         self.output_attention = output_attention
         self.dropout = nn.Dropout(attention_dropout)
+
+        self.few_shot = few_shot
+        if self.few_shot:
+            self.clustering = Clustering(device=device, d_model=d_k * h)
+            self.layer_norm = nn.LayerNorm(d_k, elementwise_affine=False, device=device)
+            self.w1 = nn.Sequential(nn.Linear(d_k, d_k, device=device),
+                                    nn.GELU())
 
     def time_delay_agg_training(self, values, corr):
         """
@@ -102,7 +113,8 @@ class AutoCorrelation(nn.Module):
             delays_agg = delays_agg + pattern * (tmp_corr[..., i].unsqueeze(-1))
         return delays_agg
 
-    def forward(self, queries, keys, values, attn_mask):
+    def autocorr(self, queries, keys, values):
+
         B, L, H, E = queries.shape
         _, S, _, D = values.shape
         if L > S:
@@ -129,3 +141,22 @@ class AutoCorrelation(nn.Module):
             return (V.contiguous(), corr.permute(0, 3, 1, 2))
         else:
             return (V.contiguous(), None)
+
+    def forward(self, queries, keys, values, attn_mask):
+
+        if self.few_shot:
+
+            cluster_center, V_shrink, loss = self.clustering(keys.permute(0, 2, 1, 3), values.permute(0, 2, 1, 3))
+            context_clustering, _ = self.autocorr(queries, cluster_center.permute(0, 2, 1, 3), V_shrink.permute(0, 2, 1, 3))
+
+            context, _ = self.autocorr(queries, keys, values)
+
+            context_final = self.layer_norm(context + self.w1(context_clustering))
+
+            return context_final, None, loss
+
+        else:
+
+            context, _ = self.autocorr(queries, keys, values)
+            return context, None
+

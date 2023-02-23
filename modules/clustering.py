@@ -21,9 +21,9 @@ class Clustering(nn.Module):
 
         self.cross_entropy = nn.CrossEntropyLoss()
 
-    def forward(self, Q, K, V):
+    def forward(self, K, V):
 
-        b, h, l, d_k = Q.shape
+        b, h, _, d_k = K.shape
 
         K = nn.MaxPool1d(kernel_size=9, padding=int((9-1)/2))(K.reshape(b, d_k*h, -1)).reshape(b, h, -1, d_k)
         V = nn.MaxPool1d(kernel_size=9, padding=int((9-1)/2))(V.reshape(b, d_k*h, -1)).reshape(b, h, -1, d_k)
@@ -66,10 +66,7 @@ class Clustering(nn.Module):
         cluster_center = torch.stack(cluster_centers)
 
         cluster_center = self.proj_back_to_cluster_k(cluster_center).reshape(b, h, self.num_clusters, l_k, d_k)
-        scores_center = torch.einsum('bhqd, bhckd -> bhqk', Q, cluster_center) / np.sqrt(d_k)
 
-        attn = torch.softmax(scores_center, -1)
+        cluster_center = torch.max(cluster_center, dim=2)[0]
 
-        context = torch.einsum('bhqk, bhkd -> bhqd', attn, V)
-
-        return context, loss
+        return cluster_center, V, loss

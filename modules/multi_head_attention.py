@@ -55,8 +55,15 @@ class MultiHeadAttention(nn.Module):
         # Autoformer forecasting model
 
         elif self.attn_type == "autoformer":
-            context, attn = AutoCorrelation(seed=self.seed)(q_s.transpose(1, 2), k_s.transpose(1, 2), v_s.transpose(1, 2),
-                                              attn_mask)
+            if self.few_shot:
+                context, attn, loss = AutoCorrelation(seed=self.seed, device=self.device, h=self.n_heads, d_k=self.d_k,
+                                                few_shot=self.few_shot)(q_s.transpose(1, 2), k_s.transpose(1, 2), v_s.transpose(1, 2),
+                                                  attn_mask)
+            else:
+                context, attn = AutoCorrelation(seed=self.seed, device=self.device, h=self.n_heads, d_k=self.d_k,
+                                                      few_shot=self.few_shot)(q_s.transpose(1, 2), k_s.transpose(1, 2),
+                                                                              v_s.transpose(1, 2),
+                                                                              attn_mask)
 
         # CNN-trans forecasting model
 
@@ -74,7 +81,16 @@ class MultiHeadAttention(nn.Module):
 
         elif self.attn_type == "informer":
             mask_flag = True if attn_mask is not None else False
-            context, attn = ProbAttention(mask_flag=mask_flag, seed=self.seed)(q_s, k_s, v_s, attn_mask)
+            if self.few_shot:
+                context, attn, loss = ProbAttention(mask_flag=mask_flag, seed=self.seed,
+                                              device=self.device, h=self.n_heads, d_k=self.d_k,
+                                              few_shot=self.few_shot
+                                              )(q_s, k_s, v_s, attn_mask)
+            else:
+                context, attn = ProbAttention(mask_flag=mask_flag, seed=self.seed,
+                                                    device=self.device, h=self.n_heads, d_k=self.d_k,
+                                                    few_shot=self.few_shot
+                                                    )(q_s, k_s, v_s, attn_mask)
 
         context = context.transpose(1, 2).contiguous().view(batch_size, -1, self.n_heads * self.d_v)
         output = self.fc(context)

@@ -3,9 +3,13 @@ import torch.nn as nn
 import numpy as np
 import random
 
+from modules.clustering import Clustering
+
 
 class ProbAttention(nn.Module):
-    def __init__(self, mask_flag, seed, factor=5, scale=None, attention_dropout=0.1, output_attention=False):
+    def __init__(self, *, mask_flag, seed, factor=1, scale=None,
+                 attention_dropout=0.1, output_attention=False,
+                 few_shot, device, d_k, h):
         super(ProbAttention, self).__init__()
 
         torch.manual_seed(seed)
@@ -18,7 +22,15 @@ class ProbAttention(nn.Module):
         self.output_attention = output_attention
         self.dropout = nn.Dropout(attention_dropout)
 
+        self.few_shot = few_shot
+        if self.few_shot:
+            self.clustering = Clustering(device=device, d_model=d_k * h)
+            self.layer_norm = nn.LayerNorm(d_k, elementwise_affine=False, device=device)
+            self.w1 = nn.Sequential(nn.Linear(d_k, d_k, device=device),
+                                    nn.GELU())
+
     def _prob_QK(self, Q, K, sample_k, n_top):  # n_top: c*ln(L_q)
+
         # Q [B, H, L, D]
         B, H, L_K, E = K.shape
         _, _, L_Q, _ = Q.shape
@@ -69,7 +81,7 @@ class ProbAttention(nn.Module):
         else:
             return (context_in, None)
 
-    def forward(self, queries, keys, values, attn_mask):
+    def porbattn_func(self, queries, keys, values, attn_mask):
 
         B, H, L_Q, D = queries.shape
         _, _, L_K, _ = keys.shape
@@ -92,3 +104,21 @@ class ProbAttention(nn.Module):
         context, attn = self._update_context(context, values, scores_top, index, L_Q, attn_mask)
 
         return context, attn
+
+    def forward(self, queries, keys, values, attn_mask):
+
+        if self.few_shot:
+
+            cluster_center, V_shrink, loss = self.clustering(keys, values)
+            context_clustering, _ = self.porbattn_func(queries, cluster_center, V_shrink, attn_mask)
+
+            context, attn = self.porbattn_func(queries, keys, values, attn_mask)
+
+            context_final = self.layer_norm(context + self.w1(context_clustering))
+
+            return context_final, attn, loss
+
+        else:
+
+            context, attn = self.porbattn_func(queries, keys, values, attn_mask)
+            return context, attn

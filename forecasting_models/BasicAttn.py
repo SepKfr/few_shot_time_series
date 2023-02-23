@@ -17,26 +17,35 @@ class BasicAttn(nn.Module):
         np.random.seed(seed)
 
         self.device = device
+        self.d_k = d_k
 
         self.few_shot = few_shot
+        self.few_shot = few_shot
         if self.few_shot:
-            self.clustering = Clustering(device=device, d_model=d_k*h)
-            self.layer_norm = nn.LayerNorm(d_k, device=device)
+            self.clustering = Clustering(device=device, d_model=d_k * h)
+            self.layer_norm = nn.LayerNorm(d_k, elementwise_affine=False, device=device)
+            self.w1 = nn.Sequential(nn.Linear(d_k, d_k, device=self.device),
+                                    nn.GELU())
 
     def forward(self, Q, K, V, attn_mask):
 
-        d_k = Q.shape[-1]
-
         if self.few_shot:
-            context_clustering, loss = self.clustering(Q, K, V)
-            scores = torch.einsum('bhqd,bhkd->bhqk', Q, K) / np.sqrt(d_k)
+            cluster_center, V_shrink, loss = self.clustering(K, V)
+
+            scores = torch.einsum('bhqd,bhkd->bhqk', Q, K) / np.sqrt(self.d_k)
             attn = torch.softmax(scores, -1)
             context = torch.einsum('bhqk,bhkd->bhqd', attn, V)
-            context_final = self.layer_norm(context + context_clustering)
+
+            scores = torch.einsum('bhqd,bhkd->bhqk', Q, cluster_center) / np.sqrt(self.d_k)
+            attn = torch.softmax(scores, -1)
+            context_clustering = torch.einsum('bhqk,bhkd->bhqd', attn, V_shrink)
+
+            context_final = self.layer_norm(context + self.w1(context_clustering))
+
             return context_final, attn, loss
 
         else:
-            scores = torch.einsum('bhqd,bhkd->bhqk', Q, K) / np.sqrt(d_k)
+            scores = torch.einsum('bhqd,bhkd->bhqk', Q, K) / np.sqrt(self.d_k)
             attn = torch.softmax(scores, -1)
             context = torch.einsum('bhqk,bhkd->bhqd', attn, V)
             return context, attn
