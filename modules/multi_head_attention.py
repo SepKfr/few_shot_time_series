@@ -45,36 +45,35 @@ class MultiHeadAttention(nn.Module):
 
         if self.attn_type == "ATA":
             if self.few_shot:
-                context, attn, loss = ATA(d_k=self.d_k, device=self.device, h=self.n_heads, seed=self.seed,
-                                          few_shot=self.few_shot)(
-                Q=q_s, K=k_s, V=v_s, attn_mask=attn_mask)
+                context, attn, loss = ATA(d_k=self.d_k, device=self.device, h=self.n_heads,
+                                          seed=self.seed, few_shot=self.few_shot)(Q=q_s, K=k_s, V=v_s,
+                                                                                  attn_mask=attn_mask)
             else:
-                context, attn = ATA(d_k=self.d_k, device=self.device, h=self.n_heads, seed=self.seed)(
-                    Q=q_s, K=k_s, V=v_s, attn_mask=attn_mask)
+                context, attn = ATA(d_k=self.d_k, device=self.device, h=self.n_heads,
+                                    seed=self.seed)(Q=q_s, K=k_s, V=v_s, attn_mask=attn_mask)
 
         # Autoformer forecasting model
 
         elif self.attn_type == "autoformer":
             if self.few_shot:
                 context, attn, loss = AutoCorrelation(seed=self.seed, device=self.device, h=self.n_heads, d_k=self.d_k,
-                                                few_shot=self.few_shot)(q_s.transpose(1, 2), k_s.transpose(1, 2), v_s.transpose(1, 2),
-                                                  attn_mask)
+                                                      few_shot=self.few_shot)(q_s.transpose(1, 2), k_s.transpose(1, 2),
+                                                      v_s.transpose(1, 2), attn_mask)
             else:
                 context, attn = AutoCorrelation(seed=self.seed, device=self.device, h=self.n_heads, d_k=self.d_k,
-                                                      few_shot=self.few_shot)(q_s.transpose(1, 2), k_s.transpose(1, 2),
-                                                                              v_s.transpose(1, 2),
-                                                                              attn_mask)
+                                                few_shot=self.few_shot)(q_s.transpose(1, 2), k_s.transpose(1, 2),
+                                                v_s.transpose(1, 2), attn_mask)
 
         # CNN-trans forecasting model
 
         elif self.attn_type == "basic_attn":
             if self.few_shot:
-                context, attn, loss = BasicAttn(d_k=self.d_k, h=self.n_heads, device=self.device, seed=self.seed,
-                                                few_shot=self.few_shot)(
+                context, attn, loss = BasicAttn(d_k=self.d_k, h=self.n_heads, device=self.device,
+                                                seed=self.seed, few_shot=self.few_shot)(
                 Q=q_s, K=k_s, V=v_s, attn_mask=attn_mask)
             else:
-                context, attn = BasicAttn(d_k=self.d_k, h=self.n_heads, device=self.device, seed=self.seed,
-                                          few_shot=self.few_shot)(
+                context, attn = BasicAttn(d_k=self.d_k, h=self.n_heads, device=self.device,
+                                          seed=self.seed, few_shot=self.few_shot)(
                 Q=q_s, K=k_s, V=v_s, attn_mask=attn_mask)
 
         # Informer forecasting model
@@ -83,14 +82,12 @@ class MultiHeadAttention(nn.Module):
             mask_flag = True if attn_mask is not None else False
             if self.few_shot:
                 context, attn, loss = ProbAttention(mask_flag=mask_flag, seed=self.seed,
-                                              device=self.device, h=self.n_heads, d_k=self.d_k,
-                                              few_shot=self.few_shot
-                                              )(q_s, k_s, v_s, attn_mask)
+                                                    device=self.device, h=self.n_heads, d_k=self.d_k,
+                                                    few_shot=self.few_shot)(q_s, k_s, v_s, attn_mask)
             else:
                 context, attn = ProbAttention(mask_flag=mask_flag, seed=self.seed,
-                                                    device=self.device, h=self.n_heads, d_k=self.d_k,
-                                                    few_shot=self.few_shot
-                                                    )(q_s, k_s, v_s, attn_mask)
+                                              device=self.device, h=self.n_heads, d_k=self.d_k,
+                                              few_shot=self.few_shot)(q_s, k_s, v_s, attn_mask)
 
         context = context.transpose(1, 2).contiguous().view(batch_size, -1, self.n_heads * self.d_v)
         output = self.fc(context)
