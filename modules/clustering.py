@@ -4,7 +4,7 @@ import torch
 
 
 class Clustering(nn.Module):
-    def __init__(self, *, device, num_clusters=10, d_model):
+    def __init__(self, *, device, num_clusters=5, d_model):
         super(Clustering, self).__init__()
 
         self.device = device
@@ -13,13 +13,11 @@ class Clustering(nn.Module):
         self.proj_back_to_cluster_k = nn.Sequential(nn.Linear(num_clusters, d_model, device=self.device),
                                                     nn.GELU())
 
-        self.cluster_k_proj = nn.Sequential(nn.Linear(d_model, 4*num_clusters, device=self.device),
-                                            nn.GELU(),
-                                            nn.Linear(4 * num_clusters, num_clusters, device=self.device))
+        self.cluster_k_proj = nn.Sequential(nn.Linear(d_model, num_clusters, device=self.device),
+                                            nn.GELU())
 
-        self.cluster_q_proj = nn.Sequential(nn.Linear(d_model, 4*num_clusters, device=self.device),
-                                            nn.GELU(),
-                                            nn.Linear(4 * num_clusters, num_clusters, device=self.device))
+        self.cluster_q_proj = nn.Sequential(nn.Linear(d_model, num_clusters, device=self.device),
+                                            nn.GELU())
 
         self.cross_entropy = nn.CrossEntropyLoss()
 

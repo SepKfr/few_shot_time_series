@@ -155,7 +155,7 @@ class AutoCorrelation(nn.Module):
 
             cluster_center, loss = self.clustering(keys.permute(0, 2, 1, 3),
                                                    values.permute(0, 2, 1, 3))
-            keys = keys + self.w1(cluster_center.permute(0, 2, 1, 3))
+            keys = self.layer_norm(keys + self.w1(cluster_center.permute(0, 2, 1, 3)))
 
             context, _ = self.autocorr(queries, keys, values)
 
