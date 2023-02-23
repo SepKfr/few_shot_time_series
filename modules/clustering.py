@@ -27,8 +27,8 @@ class Clustering(nn.Module):
 
         b, h, l, d_k = Q.shape
 
-        K = nn.MaxPool1d(kernel_size=3, padding=int((3-1)/2))(K.reshape(b, d_k*h, -1)).reshape(b, h, -1, d_k)
-        V = nn.MaxPool1d(kernel_size=3, padding=int((3-1)/2))(V.reshape(b, d_k*h, -1)).reshape(b, h, -1, d_k)
+        K = nn.MaxPool1d(kernel_size=7, padding=int((7-1)/2))(K.reshape(b, d_k*h, -1)).reshape(b, h, -1, d_k)
+        V = nn.MaxPool1d(kernel_size=7, padding=int((7-1)/2))(V.reshape(b, d_k*h, -1)).reshape(b, h, -1, d_k)
 
         l_k = K.shape[2]
 
