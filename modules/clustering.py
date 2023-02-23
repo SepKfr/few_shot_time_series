@@ -4,26 +4,30 @@ import torch
 
 
 class Clustering(nn.Module):
-    def __init__(self, *, device, num_clusters=5, d_model):
+    def __init__(self, *, device, num_clusters=10, d_model):
         super(Clustering, self).__init__()
 
         self.device = device
         self.num_clusters = num_clusters
 
         self.proj_back_to_cluster_k = nn.Sequential(nn.Linear(num_clusters, d_model, device=self.device),
-                                                    nn.GELU())
-
-        self.cluster_k_proj = nn.Sequential(nn.Linear(d_model, num_clusters, device=self.device),
                                             nn.GELU())
 
-        self.cluster_q_proj = nn.Sequential(nn.Linear(d_model, num_clusters, device=self.device),
-                                            nn.GELU())
+        self.cluster_k_proj = nn.Sequential(nn.Linear(d_model, 4*num_clusters, device=self.device),
+                                            nn.GELU(),
+                                            nn.Linear(4*num_clusters, num_clusters, device=self.device))
 
+        self.cluster_q_proj = nn.Sequential(nn.Linear(d_model, 4*num_clusters, device=self.device),
+                                            nn.GELU(),
+                                            nn.Linear(4*num_clusters, num_clusters, device=self.device))
         self.cross_entropy = nn.CrossEntropyLoss()
 
-    def forward(self, K, V):
+    def forward(self, Q, K, V):
 
-        b, h, _, d_k = K.shape
+        b, h, l, d_k = Q.shape
+
+        K = nn.MaxPool1d(kernel_size=9, padding=int((9-1)/2))(K.reshape(b, d_k*h, -1)).reshape(b, h, -1, d_k)
+        V = nn.MaxPool1d(kernel_size=9, padding=int((9-1)/2))(V.reshape(b, d_k*h, -1)).reshape(b, h, -1, d_k)
 
         l_k = K.shape[2]
 
@@ -58,9 +62,11 @@ class Clustering(nn.Module):
 
         cluster_center = torch.stack(cluster_centers)
 
-        cluster_center = self.proj_back_to_cluster_k(cluster_center).\
-            reshape(b, h, self.num_clusters, l_k, d_k)
+        cluster_center = self.proj_back_to_cluster_k(cluster_center).reshape(b, h, self.num_clusters, l_k, d_k)
+        scores_center = torch.einsum('bhqd, bhckd -> bhqk', Q, cluster_center) / np.sqrt(d_k)
 
-        cluster_center = torch.max(cluster_center, dim=2)[0]
+        attn = torch.softmax(scores_center, -1)
 
-        return cluster_center, loss
+        context = torch.einsum('bhqk, bhkd -> bhqd', attn, V)
+
+        return context, loss
