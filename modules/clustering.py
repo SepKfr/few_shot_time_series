@@ -11,15 +11,14 @@ class Clustering(nn.Module):
         self.num_clusters = num_clusters
 
         self.proj_back_to_cluster_k = nn.Sequential(nn.Linear(num_clusters, d_model, device=self.device),
+                                                    nn.GELU())
+
+        self.cluster_k_proj = nn.Sequential(nn.Linear(d_model, num_clusters, device=self.device),
                                             nn.GELU())
 
-        self.cluster_k_proj = nn.Sequential(nn.Linear(d_model, 4*num_clusters, device=self.device),
-                                            nn.GELU(),
-                                            nn.Linear(4*num_clusters, num_clusters, device=self.device))
+        self.cluster_q_proj = nn.Sequential(nn.Linear(d_model, num_clusters, device=self.device),
+                                            nn.GELU())
 
-        self.cluster_q_proj = nn.Sequential(nn.Linear(d_model, 4*num_clusters, device=self.device),
-                                            nn.GELU(),
-                                            nn.Linear(4*num_clusters, num_clusters, device=self.device))
         self.cross_entropy = nn.CrossEntropyLoss()
 
     def forward(self, Q, K, V):
@@ -39,8 +38,12 @@ class Clustering(nn.Module):
 
         K_unfold = K_unfold.reshape(b, l_k, -1, d_k*h)
 
-        cluster_k = self.cluster_k_proj(K_unfold)
-        cluster_q = self.cluster_q_proj(K_unfold)
+        scores = torch.einsum('blcd, blvd -> blcv', K_unfold, K_unfold) / np.sqrt(d_k*h)
+        attn = torch.softmax(scores, dim=-1)
+        K_cluster = torch.einsum('blcv, blvd -> blcd', attn, K_unfold)
+
+        cluster_k = self.cluster_k_proj(K_cluster)
+        cluster_q = self.cluster_q_proj(K_cluster)
 
         cluster_k = torch.softmax(cluster_k, dim=-1)
         cluster_q = torch.softmax(cluster_q, dim=-1)
