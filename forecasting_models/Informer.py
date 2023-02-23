@@ -109,16 +109,15 @@ class ProbAttention(nn.Module):
 
         if self.few_shot:
 
-            cluster_center, V_shrink, loss = self.clustering(keys, values)
-            context_clustering, _ = self.porbattn_func(queries, cluster_center, V_shrink, attn_mask)
+            context_clustering, loss = self.clustering(queries, keys, values)
 
-            context, attn = self.porbattn_func(queries, keys, values, attn_mask)
+            context, _ = self.porbattn_func(queries, keys, values, attn_mask)
 
             context_final = self.layer_norm(context + self.w1(context_clustering))
 
-            return context_final, attn, loss
+            return context_final, None, loss
 
         else:
 
-            context, attn = self.porbattn_func(queries, keys, values, attn_mask)
-            return context, attn
+            context, _ = self.porbattn_func(queries, keys, values, attn_mask)
+            return context, None

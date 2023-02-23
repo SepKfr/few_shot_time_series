@@ -146,13 +146,11 @@ class AutoCorrelation(nn.Module):
 
         if self.few_shot:
 
-            cluster_center, loss = self.clustering(keys.permute(0, 2, 1, 3), values.permute(0, 2, 1, 3))
-            context_clustering, _ = self.autocorr(queries, cluster_center.permute(0, 2, 1, 3),
-                                                  values)
+            context_clustering, loss = self.clustering(queries.permute(0, 2, 1, 3), keys.permute(0, 2, 1, 3), values.permute(0, 2, 1, 3))
 
             context, _ = self.autocorr(queries, keys, values)
 
-            context_final = self.layer_norm(context + self.w1(context_clustering))
+            context_final = self.layer_norm(context + self.w1(context_clustering.permute(0, 2, 1, 3)))
 
             return context_final, None, loss
 
