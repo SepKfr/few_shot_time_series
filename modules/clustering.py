@@ -33,14 +33,17 @@ class Clustering(nn.Module):
 
         padding = torch.zeros(unfolding, h, l_k, d_k, device=self.device)
         K_padded = torch.cat([padding, K[1:]])
+        V_padded = torch.cat([padding, V[1:]])
         K_unfold = K_padded.unfold(0, unfolding, 1)
+        V_unfold = V_padded.unfold(0, unfolding, 1)
 
         K_unfold = K_unfold.reshape(b, l_k, -1, d_k*h)
         Q_unfold = Q.reshape(b, l, -1, d_k*h)
+        V_unfold = V_unfold.reshape(b, l, -1, d_k*h)
 
         cluster_k = self.cluster_k_proj(K_unfold)
         cluster_q = self.cluster_q_proj(Q_unfold)
-        cluster_v = self.cluster_v_proj(Q_unfold)
+        cluster_v = self.cluster_v_proj(V_unfold)
 
         scores = torch.einsum('blcd, blpd -> blcp', cluster_q, cluster_k) / np.sqrt(d_k*h)
         scores = torch.softmax(scores, -1)
