@@ -51,7 +51,7 @@ class ATA(nn.Module):
                                     nn.ReLU())
         self.factor = 1
 
-    def forward(self, Q, K, V, attn_mask):
+    def ata_func(self, Q, K):
 
         b, h, l, d_k = Q.shape
         l_k = K.shape[2]
@@ -78,9 +78,15 @@ class ATA(nn.Module):
         K = torch.max(K_proj, dim=-1)[0].unsqueeze(-1)
         K = self.proj_back_k(K)
 
+        return Q, K
+
+    def forward(self, Q, K, V, attn_mask):
+
+        Q, K = self.ata_func(Q, K)
+
         if self.few_shot:
 
-            context_clustering, loss = self.clustering(Q, K, V)
+            context_clustering, loss = self.clustering(Q, K, V, self.ata_func)
 
             scores = torch.einsum('bhqd,bhkd->bhqk', Q, K) / np.sqrt(self.d_k)
             attn = torch.softmax(scores, -1)

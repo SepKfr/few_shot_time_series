@@ -4,7 +4,7 @@ import torch
 
 
 class Clustering(nn.Module):
-    def __init__(self, *, device, num_clusters=3, d_model):
+    def __init__(self, *, device, num_clusters=5, d_model):
         super(Clustering, self).__init__()
 
         self.device = device
@@ -24,12 +24,12 @@ class Clustering(nn.Module):
 
         self.cross_entropy = nn.CrossEntropyLoss()
 
-    def forward(self, Q, K, V):
+    def forward(self, Q, K, V, model=None):
 
         b, h, l, d_k = Q.shape
         l_k = K.shape[2]
 
-        unfolding = 10 * self.num_clusters
+        unfolding = 5 * self.num_clusters
 
         padding = torch.zeros(unfolding, h, l_k, d_k, device=self.device)
         K_padded = torch.cat([padding, K[1:]])
@@ -45,8 +45,9 @@ class Clustering(nn.Module):
         cluster_q = self.cluster_q_proj(Q_unfold)
         cluster_v = self.cluster_v_proj(V_unfold)
 
-        scores = torch.einsum('blcd, blpd -> blcp', cluster_q, cluster_k) / np.sqrt(d_k*h)
+        scores = torch.einsum('blcd, blpd -> blcp', cluster_q, cluster_k) / self.num_clusters
         scores = torch.softmax(scores, -1)
+
         cluster_context = torch.einsum('blcp, blpd -> blcd', scores, cluster_v)
 
         mu = torch.mean(cluster_q, dim=-1)
