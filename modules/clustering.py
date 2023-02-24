@@ -29,7 +29,7 @@ class Clustering(nn.Module):
         b, h, l, d_k = Q.shape
         l_k = K.shape[2]
 
-        unfolding = 5 * self.num_clusters
+        unfolding = int(b/4)
 
         padding = torch.zeros(unfolding, h, l_k, d_k, device=self.device)
         K_padded = torch.cat([padding, K[1:]])
@@ -40,6 +40,9 @@ class Clustering(nn.Module):
         K_unfold = K_unfold.reshape(b, l_k, -1, d_k*h)
         Q_unfold = Q.reshape(b, l, -1, d_k*h)
         V_unfold = V_unfold.reshape(b, l, -1, d_k*h)
+
+        K_unfold = nn.AvgPool2d(kernel_size=(3, 1), padding=(1, 0))(K_unfold)
+        V_unfold = nn.AvgPool2d(kernel_size=(3, 1), padding=(1, 0))(V_unfold)
 
         cluster_k = self.cluster_k_proj(K_unfold)
         cluster_q = self.cluster_q_proj(Q_unfold)

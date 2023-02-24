@@ -37,7 +37,7 @@ class BasicAttn(nn.Module):
 
             context_clustering, loss = self.clustering(context, context, context)
 
-            context_final = self.layer_norm(context + self.w1(context_clustering))
+            context_final = self.layer_norm(context + context_clustering)
 
             return context_final, attn, loss
 
