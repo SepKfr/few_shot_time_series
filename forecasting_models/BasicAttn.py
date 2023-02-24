@@ -24,19 +24,18 @@ class BasicAttn(nn.Module):
         if self.few_shot:
             self.clustering = Clustering(device=device, d_model=d_k * h)
             self.layer_norm = nn.LayerNorm(d_k, elementwise_affine=False, device=device)
-            self.w1 = nn.Sequential(nn.Linear(d_k, d_k, device=self.device),
-                                    nn.GELU())
 
     def forward(self, Q, K, V, attn_mask):
 
         if self.few_shot:
 
-            context_clustering, loss = self.clustering(Q, K, V)
             scores = torch.einsum('bhqd,bhkd->bhqk', Q, K) / np.sqrt(self.d_k)
             attn = torch.softmax(scores, -1)
             context = torch.einsum('bhqk,bhkd->bhqd', attn, V)
 
-            context_final = self.layer_norm(context + self.w1(context_clustering))
+            context_clustering, loss = self.clustering(context, context, context)
+
+            context_final = self.layer_norm(context + context_clustering)
 
             return context_final, attn, loss
 
