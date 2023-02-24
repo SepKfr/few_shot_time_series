@@ -4,7 +4,7 @@ import torch
 
 
 class Clustering(nn.Module):
-    def __init__(self, *, device, num_clusters=10, d_model):
+    def __init__(self, *, device, num_clusters=3, d_model):
         super(Clustering, self).__init__()
 
         self.device = device
@@ -27,8 +27,8 @@ class Clustering(nn.Module):
 
         b, h, l, d_k = Q.shape
 
-        K = nn.MaxPool1d(kernel_size=7, padding=int((7-1)/2))(K.reshape(b, d_k*h, -1)).reshape(b, h, -1, d_k)
-        V = nn.MaxPool1d(kernel_size=7, padding=int((7-1)/2))(V.reshape(b, d_k*h, -1)).reshape(b, h, -1, d_k)
+        K = nn.MaxPool1d(kernel_size=9, padding=int((9-1)/2))(K.reshape(b, d_k*h, -1)).reshape(b, h, -1, d_k)
+        V = nn.MaxPool1d(kernel_size=9, padding=int((9-1)/2))(V.reshape(b, d_k*h, -1)).reshape(b, h, -1, d_k)
 
         l_k = K.shape[2]
 
@@ -64,9 +64,9 @@ class Clustering(nn.Module):
         cluster_center = torch.stack(cluster_centers)
 
         cluster_center = self.proj_back_to_cluster_k(cluster_center).reshape(b, h, self.num_clusters, l_k, d_k)
-        scores_center = torch.einsum('bhqd, bhckd -> bhqk', Q, cluster_center) / np.sqrt(d_k)
+        scores_center = torch.einsum('bhqd, bhckd -> bhcqk', Q, cluster_center) / np.sqrt(d_k)
 
-        attn = torch.softmax(scores_center, -1)
+        attn = torch.softmax(torch.max(scores_center, dim=2)[0], -1)
 
         context = torch.einsum('bhqk, bhkd -> bhqd', attn, V)
 
