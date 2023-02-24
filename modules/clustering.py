@@ -4,7 +4,7 @@ import torch
 
 
 class Clustering(nn.Module):
-    def __init__(self, *, device, num_clusters=5, d_model):
+    def __init__(self, *, device, num_clusters=3, d_model):
         super(Clustering, self).__init__()
 
         self.device = device
