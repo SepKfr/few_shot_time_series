@@ -47,8 +47,7 @@ class ATA(nn.Module):
         if self.few_shot:
             self.clustering = Clustering(device=device, d_model=d_k*h)
             self.layer_norm = nn.LayerNorm(d_k, elementwise_affine=False, device=device)
-            self.w1 = nn.Sequential(nn.Linear(d_k, d_k, device=self.device),
-                                    nn.ReLU())
+
         self.factor = 1
 
     def ata_func(self, Q, K):
@@ -92,7 +91,7 @@ class ATA(nn.Module):
             attn = torch.softmax(scores, -1)
             context = torch.einsum('bhqk,bhkd->bhqd', attn, V)
 
-            context_final = self.layer_norm(context + self.w1(context_clustering))
+            context_final = self.layer_norm(context + context_clustering)
 
             return context_final, attn, loss
 
