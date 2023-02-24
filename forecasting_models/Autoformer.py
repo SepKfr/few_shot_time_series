@@ -35,8 +35,7 @@ class AutoCorrelation(nn.Module):
         if self.few_shot:
             self.clustering = Clustering(device=device, d_model=d_k * h)
             self.layer_norm = nn.LayerNorm(d_k, elementwise_affine=False, device=device)
-            self.w1 = nn.Sequential(nn.Linear(d_k, d_k, device=device),
-                                    nn.GELU())
+            self.w1 = nn.Linear(d_k, d_k, device=device)
 
     def time_delay_agg_training(self, values, corr):
         """
@@ -151,7 +150,7 @@ class AutoCorrelation(nn.Module):
 
             context, _ = self.autocorr(queries, keys, values)
 
-            context_final = self.layer_norm(context + self.w1(context_clustering.permute(0, 2, 1, 3)))
+            context_final = self.layer_norm(context + 0.1 * self.w1(context_clustering.permute(0, 2, 1, 3)))
 
             return context_final, None, loss
 
