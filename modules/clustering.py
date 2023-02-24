@@ -32,7 +32,7 @@ class Clustering(nn.Module):
 
         l_k = K.shape[2]
 
-        unfolding = 10 * self.num_clusters
+        unfolding = 20 * self.num_clusters
 
         padding = torch.zeros(unfolding, h, l_k, d_k, device=self.device)
         K_padded = torch.cat([padding, K[1:]])
