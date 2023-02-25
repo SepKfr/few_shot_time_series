@@ -11,7 +11,7 @@ from modules.encoding import PositionalEncoding
 class EncoderLayer(nn.Module):
 
     def __init__(self, d_model, d_ff, d_k, d_v, n_heads,
-                 device, attn_type, seed):
+                 device, attn_type, seed, few_shot):
         super(EncoderLayer, self).__init__()
 
         np.random.seed(seed)
@@ -21,25 +21,25 @@ class EncoderLayer(nn.Module):
         self.enc_self_attn = MultiHeadAttention(
             d_model=d_model, d_k=d_k,
             d_v=d_v, n_heads=n_heads, device=device,
-            attn_type=attn_type, seed=seed)
+            attn_type=attn_type, seed=seed, few_shot=few_shot)
         self.pos_ffn = PoswiseFeedForwardNet(
             d_model=d_model, d_ff=d_ff, seed=seed)
         self.layer_norm = nn.LayerNorm(d_model, elementwise_affine=False)
 
     def forward(self, enc_inputs, enc_self_attn_mask=None):
 
-        out, attn = self.enc_self_attn(enc_inputs, enc_inputs, enc_inputs, attn_mask=enc_self_attn_mask)
+        out, attn, loss = self.enc_self_attn(enc_inputs, enc_inputs, enc_inputs, attn_mask=enc_self_attn_mask)
         out = self.layer_norm(out + enc_inputs)
         out_2 = self.pos_ffn(out)
         out_2 = self.layer_norm(out_2 + out)
-        return out_2
+        return out_2, loss
 
 
 class Encoder(nn.Module):
 
     def __init__(self, d_model, d_ff, d_k, d_v, n_heads,
                  n_layers, pad_index, device,
-                 attn_type, seed):
+                 attn_type, seed, few_shot):
         super(Encoder, self).__init__()
 
         np.random.seed(seed)
@@ -59,7 +59,8 @@ class Encoder(nn.Module):
                 d_model=d_model, d_ff=d_ff,
                 d_k=d_k, d_v=d_v, n_heads=n_heads,
                 device=device,
-                attn_type=attn_type, seed=seed)
+                attn_type=attn_type, seed=seed,
+                few_shot=few_shot)
             self.layers.append(encoder_layer)
         self.layers = nn.ModuleList(self.layers)
 
@@ -69,7 +70,10 @@ class Encoder(nn.Module):
 
         enc_self_attn_mask = None
 
-        for layer in self.layers:
-            enc_outputs = layer(enc_outputs, enc_self_attn_mask)
+        loss_tot = 0.0
 
-        return enc_outputs
+        for layer in self.layers:
+            enc_outputs, loss = layer(enc_outputs, enc_self_attn_mask)
+            loss_tot += loss
+
+        return enc_outputs, loss_tot

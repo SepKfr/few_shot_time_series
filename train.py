@@ -23,6 +23,7 @@ class Train:
         config = ExperimentConfig(pred_len, args.exp_name)
         self.data = data
         self.len_data = len(data)
+        self.few_shot = True if args.few_shot == "True" else False
         self.formatter = config.make_data_formatter()
         self.params = self.formatter.get_experiment_params()
         self.total_time_steps = self.params['total_time_steps']
@@ -51,12 +52,12 @@ class Train:
     def get_forecasting_model(self, config: tuple):
 
         model = Forecasting(model_name=self.model_name,
-                                   config=config,
-                                   few_shot=False,
-                                   device=self.device,
-                                   seed=self.seed,
-                                   pred_len=self.pred_len,
-                                   attn_type=self.attn_type).to(self.device)
+                            config=config,
+                            few_shot=self.few_shot,
+                            device=self.device,
+                            seed=self.seed,
+                            pred_len=self.pred_len,
+                            attn_type=self.attn_type).to(self.device)
 
         return model
 
@@ -137,8 +138,8 @@ class Train:
             model.train()
             for train_enc, train_dec, train_y in self.train:
 
-                output = model(train_enc.to(self.device), train_dec.to(self.device))
-                loss = nn.MSELoss()(output, train_y.to(self.device))
+                output, few_shot_loss = model(train_enc.to(self.device), train_dec.to(self.device))
+                loss = nn.MSELoss()(output, train_y.to(self.device)) + 0.001 * few_shot_loss
 
                 total_loss += loss.item()
 
@@ -150,7 +151,7 @@ class Train:
             test_loss = 0
             for valid_enc, valid_dec, valid_y in self.valid:
 
-                output = model(valid_enc.to(self.device), valid_dec.to(self.device))
+                output, few_shot_loss = model(valid_enc.to(self.device), valid_dec.to(self.device))
                 loss = nn.MSELoss()(output, valid_y.to(self.device))
 
                 test_loss += loss.item()
@@ -183,10 +184,7 @@ class Train:
 
         for test_enc, test_dec, test_y in self.test:
 
-            if self.denoising:
-                output, _ = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
-            else:
-                output = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
+            output, _ = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
 
             predictions[j, :output.shape[0], :] = output.squeeze(-1).cpu().detach().numpy()
             test_y_tot[j, :test_y.shape[0], :] = test_y.squeeze(-1).cpu().detach().numpy()
@@ -234,6 +232,7 @@ def main():
     parser.add_argument("--cuda", type=str, default="cuda:0")
     parser.add_argument("--seed", type=int, default=1234)
     parser.add_argument("--n_trials", type=int, default=3)
+    parser.add_argument("--few_shot", type=str, default="True")
     parser.add_argument("--num_epochs", type=int, default=50)
 
     args = parser.parse_args()
