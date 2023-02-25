@@ -43,22 +43,15 @@ class Forecasting(nn.Module):
                                                  n_layers=stack_size, src_pad_index=0,
                                                  tgt_pad_index=0, device=device,
                                                  attn_type=attn_type,
-                                                 seed=seed, few_shot=few_shot)
+                                                 seed=seed)
         self.few_shot = few_shot
 
         self.final_projection = nn.Linear(d_model, 1)
 
     def forward(self, enc_inputs, dec_inputs):
 
-        if self.few_shot:
-
-            outputs, loss = self.forecasting_model(enc_inputs, dec_inputs)
-
-        else:
-            outputs = self.forecasting_model(enc_inputs, dec_inputs)
+        outputs = self.forecasting_model(enc_inputs, dec_inputs)
 
         outputs = self.final_projection(outputs[:, -self.pred_len:, :])
-        if self.few_shot:
-            return outputs, loss
-        else:
-            return outputs
+
+        return outputs
