@@ -24,7 +24,7 @@ class Clustering(nn.Module):
 
         self.cross_entropy = nn.CrossEntropyLoss()
 
-    def forward(self, Q, K, V, model=None):
+    def forward(self, Q, K, V, sim_method=None):
 
         b, h, l, d_k = Q.shape
         l_k = K.shape[2]
@@ -50,7 +50,6 @@ class Clustering(nn.Module):
 
         scores = torch.einsum('blcd, blpd -> blcp', cluster_q, cluster_k) / self.num_clusters
         scores = torch.softmax(scores, -1)
-
         cluster_context = torch.einsum('blcp, blpd -> blcd', scores, cluster_v)
 
         mu = torch.mean(cluster_q, dim=-1)

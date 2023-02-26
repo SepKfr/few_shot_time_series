@@ -40,6 +40,7 @@ class BasicAttn(nn.Module):
             return context_final, attn, loss
 
         else:
+
             scores = torch.einsum('bhqd,bhkd->bhqk', Q, K) / np.sqrt(self.d_k)
             attn = torch.softmax(scores, -1)
             context = torch.einsum('bhqk,bhvd->bhqd', attn, V)

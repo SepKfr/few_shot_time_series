@@ -120,4 +120,4 @@ class ProbAttention(nn.Module):
         else:
 
             context, _ = self.porbattn_func(queries, keys, values, attn_mask)
-            return context, None
+            return context, None, 0.0

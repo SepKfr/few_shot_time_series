@@ -158,5 +158,5 @@ class AutoCorrelation(nn.Module):
         else:
 
             context, _ = self.autocorr(queries, keys, values)
-            return context, None
+            return context, None, 0.0
 

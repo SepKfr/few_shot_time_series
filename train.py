@@ -112,7 +112,7 @@ class Train:
         # hyperparameters
 
         d_model = trial.suggest_categorical("d_model", [32])
-        w_steps = trial.suggest_categorical("w_steps", [1000])
+        w_steps = trial.suggest_categorical("w_steps", [1000, 8000])
         stack_size = trial.suggest_categorical("stack_size", [1])
 
         n_heads = self.model_params['num_heads']
@@ -232,7 +232,7 @@ def main():
     parser.add_argument("--cuda", type=str, default="cuda:0")
     parser.add_argument("--seed", type=int, default=1234)
     parser.add_argument("--n_trials", type=int, default=50)
-    parser.add_argument("--few_shot", type=str, default="True")
+    parser.add_argument("--few_shot", type=str, default="False")
     parser.add_argument("--num_epochs", type=int, default=50)
 
     args = parser.parse_args()
