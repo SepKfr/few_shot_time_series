@@ -44,14 +44,18 @@ class MultiHeadAttention(nn.Module):
         # ATA forecasting model
 
         if self.attn_type == "ATA":
-            context, attn = ATA(d_k=self.d_k, device=self.device, h=self.n_heads, seed=self.seed)(
+            context, attn = ATA(d_k=self.d_k, device=self.device,
+                                h=self.n_heads, seed=self.seed,
+                                few_shot=self.few_shot)(
             Q=q_s, K=k_s, V=v_s, attn_mask=attn_mask)
 
         # Autoformer forecasting model
 
         elif self.attn_type == "autoformer":
-            context, attn = AutoCorrelation(seed=self.seed)(q_s.transpose(1, 2), k_s.transpose(1, 2), v_s.transpose(1, 2),
-                                              attn_mask)
+            context, attn, loss = AutoCorrelation(seed=self.seed, d_k=self.d_k,
+                                            device=self.device, h=self.n_heads,
+                                            few_shot=self.few_shot)(q_s.transpose(1, 2),
+                                                                    k_s.transpose(1, 2), v_s.transpose(1, 2), attn_mask)
 
         # CNN-trans forecasting model
 
@@ -67,7 +71,12 @@ class MultiHeadAttention(nn.Module):
 
         elif self.attn_type == "informer":
             mask_flag = True if attn_mask is not None else False
-            context, attn = ProbAttention(mask_flag=mask_flag, seed=self.seed)(q_s, k_s, v_s, attn_mask)
+            context, attn, loss = ProbAttention(mask_flag=mask_flag, seed=self.seed,
+                                          d_k=self.d_k,
+                                          h=self.n_heads,
+                                          device=self.device,
+                                          few_shot=self.few_shot
+                                          )(q_s, k_s, v_s, attn_mask)
 
         context = context.transpose(1, 2).contiguous().view(batch_size, -1, self.n_heads * self.d_v)
         output = self.fc(context)

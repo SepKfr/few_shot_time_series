@@ -11,7 +11,7 @@ torch.backends.cudnn.deterministic = True
 
 
 class ATA(nn.Module):
-    def __init__(self, *, d_k, device, h, seed, few_shot=False):
+    def __init__(self, *, d_k, device, h, seed, few_shot):
 
         super(ATA, self).__init__()
 
